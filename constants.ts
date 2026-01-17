@@ -1,11 +1,72 @@
 
-import { UserRole, User, Classification, DocStatus, DocumentMetadata } from './types';
+import { UserRole, User, Classification, DocStatus, DocumentMetadata, Role } from './types';
+
+export const INITIAL_ROLES: Role[] = [
+  {
+    id: 'role-admin',
+    name: 'Administrator',
+    permissions: { dashboard: true, documents: false, templates: false, admin: true }
+  },
+  {
+    id: 'role-manager',
+    name: 'Manager',
+    permissions: { dashboard: true, documents: true, templates: true, admin: false }
+  },
+  {
+    id: 'role-user',
+    name: 'User',
+    permissions: { dashboard: true, documents: true, templates: false, admin: false }
+  },
+  {
+    id: 'role-guest',
+    name: 'Guest',
+    permissions: { dashboard: true, documents: true, templates: false, admin: false }
+  }
+];
 
 export const MOCK_USERS: User[] = [
-  { id: '1', username: 'admin', role: UserRole.ADMIN, fullName: 'System Administrator' },
-  { id: '2', username: 'manager', role: UserRole.MANAGER, fullName: 'Project Manager' },
-  { id: '3', username: 'user', role: UserRole.USER, fullName: 'Standard User' },
-  { id: '4', username: 'guest', role: UserRole.GUEST, fullName: 'External Guest' },
+  { 
+    id: 'admin1', 
+    username: 'admin1', 
+    roleId: 'role-admin', 
+    firstName: 'Primary', 
+    middleName: 'System',
+    lastName: 'Admin', 
+    fullName: 'Primary Admin', 
+    email: 'admin1@docuvault.pro', 
+    phone: '555-0101' 
+  },
+  { 
+    id: 'admin2', 
+    username: 'admin2', 
+    roleId: 'role-admin', 
+    firstName: 'Secondary', 
+    middleName: 'Control',
+    lastName: 'Admin', 
+    fullName: 'Secondary Admin', 
+    email: 'admin2@docuvault.pro', 
+    phone: '555-0102' 
+  },
+  { 
+    id: 'u2', 
+    username: 'manager', 
+    roleId: 'role-manager', 
+    firstName: 'Sarah', 
+    lastName: 'Manager', 
+    fullName: 'Sarah Manager', 
+    email: 'manager@docuvault.pro', 
+    phone: '555-0201' 
+  },
+  { 
+    id: 'u3', 
+    username: 'user', 
+    roleId: 'role-user', 
+    firstName: 'David', 
+    lastName: 'User', 
+    fullName: 'David User', 
+    email: 'user@docuvault.pro', 
+    phone: '555-0301' 
+  },
 ];
 
 export const INITIAL_DOCS: DocumentMetadata[] = [
@@ -15,9 +76,9 @@ export const INITIAL_DOCS: DocumentMetadata[] = [
     type: 'application/pdf',
     classification: Classification.CONFIDENTIAL,
     status: DocStatus.ACTIVE,
-    uploadedBy: '2',
+    uploadedBy: 'u2',
     uploadedAt: '2023-12-01T10:00:00Z',
-    reviewedBy: '1',
+    reviewedBy: 'admin1',
     reviewedAt: '2023-12-05T14:30:00Z',
     size: 2450000,
     customerId: 'CUST-8821',
@@ -33,7 +94,7 @@ export const INITIAL_DOCS: DocumentMetadata[] = [
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     classification: Classification.INTERNAL,
     status: DocStatus.PENDING,
-    uploadedBy: '3',
+    uploadedBy: 'u3',
     uploadedAt: '2024-01-15T09:15:00Z',
     size: 450000,
     customerId: 'CUST-4412',
@@ -43,20 +104,4 @@ export const INITIAL_DOCS: DocumentMetadata[] = [
     versions: [],
     expirationDate: '2024-06-30'
   },
-  {
-    id: 'doc-3',
-    name: 'Security_Policy.pdf',
-    type: 'application/pdf',
-    classification: Classification.RESTRICTED,
-    status: DocStatus.NEEDS_REVISION,
-    uploadedBy: '1',
-    uploadedAt: '2024-02-10T11:20:00Z',
-    size: 1200000,
-    customerId: 'ORG-CORE',
-    description: 'Core organizational security protocols and response procedures.',
-    comments: 'Missing section on biometric access controls.',
-    version: 1,
-    versions: [],
-    expirationDate: '2025-01-01'
-  }
 ];

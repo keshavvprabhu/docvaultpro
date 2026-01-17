@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Classification, DocumentMetadata, UserRole, DocStatus, EventLog, DocumentVersion, DocumentTemplate } from '../types';
+import { Classification, DocumentMetadata, UserRole, DocStatus, EventLog, DocumentVersion, DocumentTemplate, User } from '../types';
 import { analyzeDocumentMetadata } from '../services/geminiService';
 import FileViewer from './FileViewer';
 
@@ -11,6 +11,7 @@ interface DocumentModalProps {
   onSubmitReview?: (docId: string) => void;
   document?: DocumentMetadata | null;
   templates?: DocumentTemplate[];
+  users: User[];
   currentUserId: string;
   currentUserRole: UserRole;
   onReviewAction: (docId: string, action: 'APPROVE' | 'REJECT' | 'REQUEST_REVISION', comment?: string) => void;
@@ -18,7 +19,7 @@ interface DocumentModalProps {
   eventLogs: EventLog[];
 }
 
-const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete, onSubmitReview, document, templates = [], currentUserId, currentUserRole, onReviewAction, onRevert, eventLogs }) => {
+const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete, onSubmitReview, document, templates = [], users, currentUserId, currentUserRole, onReviewAction, onRevert, eventLogs }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'versions'>('details');
   const [showViewer, setShowViewer] = useState(false);
   const [formData, setFormData] = useState<Partial<DocumentMetadata>>(
@@ -40,7 +41,6 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
   const [reviewComment, setReviewComment] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [suggestions, setSuggestions] = useState<{ summary: string; tags: string[]; suggestedClassification: string } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUploader = document?.uploadedBy === currentUserId;
@@ -90,6 +90,9 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
       default: return 'bg-slate-100 text-slate-700';
     }
   };
+
+  const reviewerName = document?.reviewedBy ? users.find(u => u.id === document.reviewedBy)?.fullName || 'System' : 'Pending Approval';
+  const reviewDate = document?.reviewedAt ? new Date(document.reviewedAt).toLocaleString() : 'N/A';
 
   return (
     <>
@@ -153,7 +156,7 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
                         <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400"><i className="fas fa-scroll"></i></div>
                         <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metadata Blueprint</p><p className="text-xs font-bold text-slate-800">Pre-fill structure</p></div>
                       </div>
-                      <select onChange={(e) => handleTemplateApply(e.target.value)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl outline-none text-xs font-bold" defaultValue=""><option value="" disabled>Select blueprint...</option>{templates.map(tpl => (<option key={tpl.id} value={tpl.id}>{tpl.name}</option>))}</select>
+                      <select onChange={(e) => handleTemplateApply(e.target.value)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl outline-none text-xs font-black text-slate-900" defaultValue=""><option value="" disabled>Select blueprint...</option>{templates.map(tpl => (<option key={tpl.id} value={tpl.id}>{tpl.name}</option>))}</select>
                     </div>
                   )}
 
@@ -187,14 +190,28 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
                   {(document || selectedFile) && (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Asset Name</label><input type="text" disabled={!canEdit} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-800" /></div>
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Customer</label><input type="text" disabled={!canEdit} value={formData.customerId} onChange={(e) => setFormData({...formData, customerId: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-800" /></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Asset Name</label><input type="text" disabled={!canEdit} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900" /></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Customer</label><input type="text" disabled={!canEdit} value={formData.customerId} onChange={(e) => setFormData({...formData, customerId: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900" /></div>
                       </div>
                       <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Classification</label><select disabled={!canEdit} value={formData.classification} onChange={(e) => setFormData({...formData, classification: e.target.value as Classification})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold">{Object.values(Classification).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Expiry Date</label><input type="date" disabled={!canEdit} value={formData.expirationDate} onChange={(e) => setFormData({...formData, expirationDate: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold" /></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Classification</label><select disabled={!canEdit} value={formData.classification} onChange={(e) => setFormData({...formData, classification: e.target.value as Classification})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900">{Object.values(Classification).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Expiry Date</label><input type="date" disabled={!canEdit} value={formData.expirationDate} onChange={(e) => setFormData({...formData, expirationDate: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900" /></div>
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Description</label><textarea disabled={!canEdit} rows={3} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-medium resize-none"></textarea></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Description</label><textarea disabled={!canEdit} rows={3} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 resize-none"></textarea></div>
+                      
+                      {/* Approved By/On Fields */}
+                      {isManagerOrAdmin && !isDraft && !isNeedsRevision && document && (
+                        <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-100">
+                           <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Approved By</label>
+                             <input type="text" readOnly value={reviewerName} className="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 cursor-default" />
+                           </div>
+                           <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Approved On</label>
+                             <input type="text" readOnly value={reviewDate} className="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 cursor-default" />
+                           </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -206,7 +223,7 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
                       </div>
                       {!isUploader && (
                         <>
-                          <textarea rows={2} value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} className="w-full px-5 py-4 bg-white border border-amber-200 rounded-2xl outline-none font-medium text-slate-700 resize-none" placeholder="Provide audit reasoning..."></textarea>
+                          <textarea rows={2} value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} className="w-full px-5 py-4 bg-white border border-amber-200 rounded-2xl outline-none font-black text-slate-900 resize-none" placeholder="Provide audit reasoning..."></textarea>
                           <div className="flex gap-3"><button onClick={() => onReviewAction(document!.id, 'APPROVE', 'Verified by Manager')} className="px-6 py-3 bg-emerald-600 text-white text-xs font-black uppercase rounded-xl">Approve</button><button disabled={!reviewComment} onClick={() => onReviewAction(document!.id, 'REQUEST_REVISION', reviewComment)} className="px-6 py-3 bg-purple-600 text-white text-xs font-black uppercase rounded-xl disabled:opacity-50">Revision Required</button><button disabled={!reviewComment} onClick={() => onReviewAction(document!.id, 'REJECT', reviewComment)} className="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase rounded-xl disabled:opacity-50">Reject</button></div>
                         </>
                       )}
@@ -219,9 +236,9 @@ const DocumentModal: React.FC<DocumentModalProps> = ({ onClose, onSave, onDelete
                     <div key={idx} className="flex gap-6 items-center bg-white border border-slate-100 p-6 rounded-[2rem] hover:border-blue-200 transition-all">
                       <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center font-black border border-slate-100 text-slate-400 group-hover:text-blue-600">V{ver.version}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-800">{ver.userName}</p>
+                        <p className="font-black text-slate-800">{ver.userName}</p>
                         <p className="text-[10px] text-slate-400 uppercase tracking-widest">{new Date(ver.timestamp).toLocaleString()}</p>
-                        {ver.comment && <p className="mt-2 text-[11px] text-slate-600 italic">"{ver.comment}"</p>}
+                        {ver.comment && <p className="mt-2 text-[11px] text-slate-900 font-bold italic">"{ver.comment}"</p>}
                       </div>
                       {canEdit && <button onClick={() => onRevert(document!.id, ver)} className="px-4 py-2 bg-slate-900 text-white text-[10px] font-black uppercase rounded-xl">Restore</button>}
                     </div>

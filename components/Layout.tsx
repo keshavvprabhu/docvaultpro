@@ -1,10 +1,11 @@
 
 import React, { ReactNode } from 'react';
-import { UserRole, User } from '../types';
+import { Role, User } from '../types';
 
 interface LayoutProps {
   children: ReactNode;
   user: User;
+  roles: Role[];
   onLogout: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -12,15 +13,18 @@ interface LayoutProps {
   onSearchChange: (query: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, setActiveTab, searchQuery, onSearchChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, user, roles, onLogout, activeTab, setActiveTab, searchQuery, onSearchChange }) => {
+  const userRole = roles.find(r => r.id === user.roleId);
+  const permissions = userRole?.permissions || { dashboard: false, documents: false, templates: false, admin: false };
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie', roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER, UserRole.GUEST] },
-    { id: 'documents', label: 'Documents', icon: 'fa-folder-open', roles: [UserRole.MANAGER, UserRole.USER, UserRole.GUEST] },
-    { id: 'templates', label: 'Templates', icon: 'fa-scroll', roles: [UserRole.MANAGER] },
-    { id: 'admin', label: 'Administration', icon: 'fa-users-cog', roles: [UserRole.ADMIN] },
+    { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie', visible: permissions.dashboard },
+    { id: 'documents', label: 'Documents', icon: 'fa-folder-open', visible: permissions.documents },
+    { id: 'templates', label: 'Templates', icon: 'fa-scroll', visible: permissions.templates },
+    { id: 'admin', label: 'Administration', icon: 'fa-users-cog', visible: permissions.admin },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.role));
+  const filteredMenuItems = menuItems.filter(item => item.visible);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -57,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, se
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">{user.fullName}</p>
-              <p className="text-xs text-slate-400 uppercase tracking-wider">{user.role}</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">{userRole?.name}</p>
             </div>
           </div>
           <button 
@@ -81,22 +85,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeTab, se
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search..." 
+                placeholder="Search repository..." 
                 className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 w-80 transition-all outline-none"
               />
-              {searchQuery && (
-                <button 
-                  onClick={() => onSearchChange('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <i className="fas fa-times-circle"></i>
-                </button>
-              )}
             </div>
-            <button className="relative w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600">
-              <i className="fas fa-bell"></i>
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-            </button>
           </div>
         </header>
 

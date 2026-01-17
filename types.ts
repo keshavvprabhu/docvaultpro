@@ -23,11 +23,29 @@ export enum Classification {
   RESTRICTED = 'RESTRICTED'
 }
 
+export interface PermissionSet {
+  dashboard: boolean;
+  documents: boolean;
+  templates: boolean;
+  admin: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  permissions: PermissionSet;
+}
+
 export interface User {
   id: string;
   username: string;
-  role: UserRole;
+  roleId: string; // References Role.id
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   fullName: string;
+  email: string;
+  phone: string;
   avatar?: string;
 }
 
@@ -77,7 +95,7 @@ export interface EventLog {
   documentId: string;
   userId: string;
   userName: string;
-  action: 'UPLOAD' | 'UPDATE' | 'APPROVE' | 'REJECT' | 'REQUEST_REVISION' | 'ARCHIVE' | 'REVERT' | 'SUBMIT' | 'DELETE';
+  action: 'UPLOAD' | 'UPDATE' | 'APPROVE' | 'REJECT' | 'REQUEST_REVISION' | 'ARCHIVE' | 'REVERT' | 'SUBMIT' | 'DELETE' | 'CREATE_USER' | 'UPDATE_ROLE';
   timestamp: string;
   comment?: string;
 }
