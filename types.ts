@@ -47,6 +47,8 @@ export interface User {
   email: string;
   phone: string;
   avatar?: string;
+  accountStatus: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
+  lastLogin?: string;
 }
 
 export interface DocumentVersion {

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { User, Role, PermissionSet } from '../types';
 
 interface AdminPanelProps {
@@ -13,6 +13,7 @@ interface AdminPanelProps {
 const AdminPanel: React.FC<AdminPanelProps> = ({ users, roles, onAddUser, onUpdateRole, currentUserId }) => {
   const [activeSubTab, setActiveSubTab] = useState<'users' | 'roles'>('users');
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
   
   // User Form State
   const [userForm, setUserForm] = useState({
@@ -25,6 +26,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, roles, onAddUser, onUpda
     roleId: roles[0]?.id || ''
   });
 
+  // Registry Analytics Logic
+  const registryStats = useMemo(() => {
+    return {
+      total: users.length,
+      active: users.filter(u => u.accountStatus === 'ACTIVE').length,
+      admins: users.filter(u => roles.find(r => r.id === u.roleId)?.name.includes('Admin')).length,
+      managers: users.filter(u => roles.find(r => r.id === u.roleId)?.name === 'Manager').length
+    };
+  }, [users, roles]);
+
+  // Filtered Users Logic
+  const filteredUsers = useMemo(() => {
+    if (!adminSearchQuery.trim()) return users;
+    const query = adminSearchQuery.toLowerCase();
+    return users.filter(u => {
+      const roleName = roles.find(r => r.id === u.roleId)?.name.toLowerCase() || '';
+      return (
+        u.fullName.toLowerCase().includes(query) ||
+        u.username.toLowerCase().includes(query) ||
+        u.email.toLowerCase().includes(query) ||
+        roleName.includes(query) ||
+        u.accountStatus.toLowerCase().includes(query)
+      );
+    });
+  }, [users, roles, adminSearchQuery]);
+
   const handleAddUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userForm.firstName || !userForm.lastName || !userForm.email || !userForm.phone || !userForm.username) {
@@ -35,7 +62,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, roles, onAddUser, onUpda
     const newUser: User = {
       id: `u-${Date.now()}`,
       ...userForm,
-      fullName: `${userForm.firstName} ${userForm.middleName ? userForm.middleName + ' ' : ''}${userForm.lastName}`.trim()
+      fullName: `${userForm.firstName} ${userForm.middleName ? userForm.middleName + ' ' : ''}${userForm.lastName}`.trim(),
+      accountStatus: 'ACTIVE'
     };
     onAddUser(newUser);
     setIsAddingUser(false);
@@ -62,7 +90,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, roles, onAddUser, onUpda
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Navigation Tabs */}
       <div className="flex items-center gap-4 bg-white p-1 rounded-2xl border border-slate-200 w-fit shadow-sm">
         <button 
@@ -80,64 +108,116 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, roles, onAddUser, onUpda
       </div>
 
       {activeSubTab === 'users' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Identity Management</h3>
-              <p className="text-slate-500 font-medium">Provision system access and manage organizational identities.</p>
+        <div className="space-y-8">
+          {/* Dashboard Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-6 group hover:border-blue-200 transition-all">
+              <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-all"><i className="fas fa-users"></i></div>
+              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Identities</p><p className="text-3xl font-black text-slate-900">{registryStats.total}</p></div>
             </div>
-            <button 
-              onClick={() => setIsAddingUser(true)}
-              className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
-            >
-              <i className="fas fa-plus"></i> Provision New User
-            </button>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all">
+              <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all"><i className="fas fa-user-check"></i></div>
+              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Accounts</p><p className="text-3xl font-black text-slate-900">{registryStats.active}</p></div>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-6 group hover:border-indigo-200 transition-all">
+              <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all"><i className="fas fa-user-shield"></i></div>
+              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Tier</p><p className="text-3xl font-black text-slate-900">{registryStats.admins}</p></div>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center gap-6 group hover:border-amber-200 transition-all">
+              <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-amber-600 group-hover:text-white transition-all"><i className="fas fa-briefcase"></i></div>
+              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Management</p><p className="text-3xl font-black text-slate-900">{registryStats.managers}</p></div>
+            </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                  <th className="px-10 py-5">Full Legal Name</th>
-                  <th className="px-10 py-5">System Username</th>
-                  <th className="px-10 py-5">Communication</th>
-                  <th className="px-10 py-5">Security Role</th>
-                  <th className="px-10 py-5 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {users.map(u => (
-                  <tr key={u.id} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="px-10 py-6">
-                      <div>
-                        <p className="text-sm font-black text-slate-800">{u.fullName}</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-black">{u.firstName} {u.lastName}</p>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6">
-                      <span className="text-xs font-mono bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700 font-bold">@{u.username}</span>
-                    </td>
-                    <td className="px-10 py-6">
-                      <div className="text-[11px] font-bold text-slate-600">
-                        <p className="flex items-center gap-2 mb-1"><i className="fas fa-envelope text-slate-300"></i>{u.email}</p>
-                        <p className="flex items-center gap-2"><i className="fas fa-phone text-slate-300"></i>{u.phone}</p>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6">
-                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase border border-indigo-100">
-                        {roles.find(r => r.id === u.roleId)?.name || 'Unassigned'}
-                      </span>
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-200"></span>
-                        Active
-                      </span>
-                    </td>
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Identity Management</h3>
+                <p className="text-slate-500 font-medium">Provision system access and manage organizational identities.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                  <input 
+                    type="text" 
+                    value={adminSearchQuery}
+                    onChange={(e) => setAdminSearchQuery(e.target.value)}
+                    placeholder="Search name, role, email..." 
+                    className="pl-12 pr-10 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 w-80 shadow-sm transition-all outline-none"
+                  />
+                  {adminSearchQuery && (
+                    <button 
+                      onClick={() => setAdminSearchQuery('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <i className="fas fa-times-circle"></i>
+                    </button>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setIsAddingUser(true)}
+                  className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2 whitespace-nowrap"
+                >
+                  <i className="fas fa-plus"></i> Provision New User
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                    <th className="px-10 py-5">Full Legal Name</th>
+                    <th className="px-10 py-5">System Username</th>
+                    <th className="px-10 py-5">Communication</th>
+                    <th className="px-10 py-5">Security Role</th>
+                    <th className="px-10 py-5 text-right">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredUsers.map(u => (
+                    <tr key={u.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="px-10 py-6">
+                        <div>
+                          <p className="text-sm font-black text-slate-800">{u.fullName}</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-black">{u.firstName} {u.lastName}</p>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6">
+                        <span className="text-xs font-mono bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700 font-bold">@{u.username}</span>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="text-[11px] font-bold text-slate-600">
+                          <p className="flex items-center gap-2 mb-1"><i className="fas fa-envelope text-slate-300"></i>{u.email}</p>
+                          <p className="flex items-center gap-2"><i className="fas fa-phone text-slate-300"></i>{u.phone}</p>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6">
+                        <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase border border-indigo-100">
+                          {roles.find(r => r.id === u.roleId)?.name || 'Unassigned'}
+                        </span>
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase ${u.accountStatus === 'ACTIVE' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          <span className={`w-2 h-2 rounded-full shadow-sm ${u.accountStatus === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                          {u.accountStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredUsers.length === 0 && (
+                <div className="p-20 text-center">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
+                    <i className="fas fa-search-minus"></i>
+                  </div>
+                  <h4 className="text-xl font-black text-slate-800 mb-2">No identities match your criteria</h4>
+                  <p className="text-slate-500 mb-6">Try refining your search terms or clearing the filter.</p>
+                  <button onClick={() => setAdminSearchQuery('')} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Clear Search</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

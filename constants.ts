@@ -34,7 +34,8 @@ export const MOCK_USERS: User[] = [
     lastName: 'Admin', 
     fullName: 'Primary Admin', 
     email: 'admin1@docuvault.pro', 
-    phone: '555-0101' 
+    phone: '555-0101',
+    accountStatus: 'ACTIVE'
   },
   { 
     id: 'admin2', 
@@ -45,7 +46,8 @@ export const MOCK_USERS: User[] = [
     lastName: 'Admin', 
     fullName: 'Secondary Admin', 
     email: 'admin2@docuvault.pro', 
-    phone: '555-0102' 
+    phone: '555-0102',
+    accountStatus: 'ACTIVE'
   },
   { 
     id: 'u2', 
@@ -55,7 +57,8 @@ export const MOCK_USERS: User[] = [
     lastName: 'Manager', 
     fullName: 'Sarah Manager', 
     email: 'manager@docuvault.pro', 
-    phone: '555-0201' 
+    phone: '555-0201',
+    accountStatus: 'ACTIVE'
   },
   { 
     id: 'u3', 
@@ -65,7 +68,8 @@ export const MOCK_USERS: User[] = [
     lastName: 'User', 
     fullName: 'David User', 
     email: 'user@docuvault.pro', 
-    phone: '555-0301' 
+    phone: '555-0301',
+    accountStatus: 'ACTIVE'
   },
 ];
 
